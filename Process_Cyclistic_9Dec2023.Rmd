@@ -1,0 +1,159 @@
+---
+title: "Process_Cyclistic"
+author: "Jiejun"
+date: "2023-12-09"
+output: html_document
+---
+
+## Process
+In this R Markdown, I will do the steps to process the data for analysis. Most of this will be based on this Google Doc here -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
+
+Based on our previous Prepare step, we had a lot of issues to tackle to combine the data together. The first one is the inconsistent column names. We will follow 2020's naming conventions like what the doc has done. We need to install the packages again
+
+### Install packages
+
+```{r install packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+```
+
+### Read all the data
+
+```{r read data, message=FALSE, warning=FALSE}
+q2_2019 <- read_csv("data/Divvy_Trips_2019_Q2.csv")
+q3_2019 <- read_csv("data/Divvy_Trips_2019_Q3.csv")
+q4_2019 <- read_csv("data/Divvy_Trips_2019_Q4.csv")
+q1_2020 <- read_csv("data/Divvy_Trips_2020_Q1.csv")
+```
+
+### Rename the columns 
+
+We make the column names consistent with q1_2020 so we can combine all the data into one
+
+```{r fix q2_2019 column names}
+(q2_2019 <- rename(q2_2019
+                   ,ride_id = "01 - Rental Details Rental ID"
+                   ,rideable_type = "01 - Rental Details Bike ID" 
+                   ,started_at = "01 - Rental Details Local Start Time"  
+                   ,ended_at = "01 - Rental Details Local End Time"  
+                   ,start_station_name = "03 - Rental Start Station Name" 
+                   ,start_station_id = "03 - Rental Start Station ID"
+                   ,end_station_name = "02 - Rental End Station Name" 
+                   ,end_station_id = "02 - Rental End Station ID"
+                   ,member_casual = "User Type"))
+```
+
+```{r fix q3_2019 column names}
+(q3_2019 <- rename(q3_2019
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+```
+
+```{r fix q4_2019 column names}
+(q4_2019 <- rename(q4_2019
+                   ,ride_id = trip_id
+                   ,rideable_type = bikeid 
+                   ,started_at = start_time  
+                   ,ended_at = end_time  
+                   ,start_station_name = from_station_name 
+                   ,start_station_id = from_station_id 
+                   ,end_station_name = to_station_name 
+                   ,end_station_id = to_station_id 
+                   ,member_casual = usertype))
+```
+
+### Make datatypes of columns consistent
+
+Now the data is consistent with its column names, but we need to change some of the data types. Something that is very strange to me is how bikeid for the tables in 2019 was changed to rideable_type, which doesn't really make sense to me 
+
+But then again, I think it doesn't matter because according to skim in the q1_2020 dataset, there was only 1 unique value (docked_bike), which means it doesn't really affect our analysis
+
+```{r fix the datatypes of q2_2019}
+q2_2019 <-  mutate(q2_2019, ride_id = as.character(ride_id)
+            ,rideable_type = as.character(rideable_type)) 
+```
+
+```{r fix the datatypes of q3_2019}
+q3_2019 <-  mutate(q3_2019, ride_id = as.character(ride_id)
+                   ,rideable_type = as.character(rideable_type)) 
+```
+
+```{r fix the datatypes of q4_2019}
+q4_2019 <-  mutate(q4_2019, ride_id = as.character(ride_id)
+                   ,rideable_type = as.character(rideable_type))
+```
+
+### Combine all the tables together
+
+Now, we can finally combine all the tables together into one data frame
+
+```{r combine tables together}
+all_trips <- bind_rows(q2_2019, q3_2019, q4_2019, q1_2020)
+```
+
+### Clean up combined dataset
+
+Now, we need to remove some unnecessary columns. I think I'll drop rideable_type too because it doesn't contribute to our analysis and the 2019 datasets didn't include this, and bike_id<dbl> != rideable_type<str> ("docked_bike")
+
+also remove lat, long, birthyear, and gender fields as this data was dropped beginning in 2020
+
+```{r}
+all_trips <- all_trips %>%  
+  select(-c(start_lat, start_lng, end_lat, end_lng, birthyear, gender, "01 - Rental Details Duration In Seconds Uncapped", "05 - Member Details Member Birthday Year", "Member Gender", "tripduration", rideable_type))
+
+```
+
+### Inspect the table
+
+```{r column names of all_trips}
+colnames(all_trips)
+```
+```{r}
+nrow(all_trips)
+```
+There are now 3879822 rows. Let us do a sanity check to see if its all the rows added together
+
+```{r}
+print(nrow(q2_2019) + nrow(q3_2019) + nrow(q4_2019) + nrow(q1_2020))
+```
+```{r}
+head(all_trips)
+```
+```{r}
+str(all_trips)
+```
+```{r}
+skim_without_charts(all_trips)
+```
+
+In the "member_casual" column, there are two names for members ("member" and "Subscriber") and two names for casual riders ("Customer" and "casual"). We will need to consolidate that from four to two labels.
+
+Reassign to the desired values (Subscriber to member and Customer to casual)
+
+```{r}
+all_trips <-  all_trips %>% 
+  mutate(member_casual = recode(member_casual
+                           ,"Subscriber" = "member"
+                           ,"Customer" = "casual"))
+```
+
+Check to make sure the proper number of observations were reassigned
+
+```{r}
+table(all_trips$member_casual)
+```
+I kind of realized that I may have muddled up on the steps of data analysis, but I feel like the data is processed this way
+
+```{r}
+write_csv(all_trips, file = 'C:\\Users\\jieju\\Desktop\\GoogleDA_CaseStudy\\data\\all_trips_processed.csv')
+```
+
+Now the dataset is processed into an overall csv for analysis

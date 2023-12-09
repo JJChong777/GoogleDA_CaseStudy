@@ -5,10 +5,12 @@ date: "2023-12-09"
 output: html_document
 ---
 
-# Prepare
+## Prepare
 In this R Markdown, I will do the steps to prepare the data for analysis. Most of this will be based on this Google Doc here -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
 
-## Install the required packages
+### Install the required packages
+
+actually some of these are not required
 
 ```{r install packages, message=FALSE, warning=FALSE}
 library(tidyverse)
@@ -16,7 +18,7 @@ library(lubridate)
 library(skimr)
 ```
 
-## Read all the data 
+### Read all the data 
 
 ```{r read data, message=FALSE, warning=FALSE}
 q2_2019 <- read_csv("data/Divvy_Trips_2019_Q2.csv")
@@ -25,7 +27,7 @@ q4_2019 <- read_csv("data/Divvy_Trips_2019_Q4.csv")
 q1_2020 <- read_csv("data/Divvy_Trips_2020_Q1.csv")
 ```
 
-## Identifying how its organized
+### Identifying how its organized
 
 Now I will take a look and how the data is being organized using the functions that the course introduced
 
