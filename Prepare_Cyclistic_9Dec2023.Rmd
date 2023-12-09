@@ -1,0 +1,198 @@
+---
+title: "Prepare_Cyclistic"
+author: "Jiejun"
+date: "2023-12-09"
+output: html_document
+---
+
+# Prepare
+In this R Markdown, I will do the steps to prepare the data for analysis. Most of this will be based on this Google Doc here -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
+
+## Install the required packages
+
+```{r install packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+```
+
+## Read all the data 
+
+```{r read data, message=FALSE, warning=FALSE}
+q2_2019 <- read_csv("data/Divvy_Trips_2019_Q2.csv")
+q3_2019 <- read_csv("data/Divvy_Trips_2019_Q3.csv")
+q4_2019 <- read_csv("data/Divvy_Trips_2019_Q4.csv")
+q1_2020 <- read_csv("data/Divvy_Trips_2020_Q1.csv")
+```
+
+## Identifying how its organized
+
+Now I will take a look and how the data is being organized using the functions that the course introduced
+
+Let's see each dataset and take a look 
+
+```{r colnames q2_2019}
+colnames(q2_2019)
+```
+```{r head q2_2019}
+head(q2_2019)
+```
+```{r skim_without_charts q2_2019}
+skim_without_charts(q2_2019)
+```
+
+```{r datatypes of cols q2_2019 str() }
+str(q2_2019)
+```
+
+I don't want to use the `str()` and `glimpse()` functions because I feel like they overload the console way too much (but I guess I have to use it to verify the datatypes easily so I'll just use str() as a afterthought)
+
+The Member Gender and Member Details Member Birthday Year column is not complete (complete_rate = 0.83 and 0.84 respectively). Therefore, we probably have to do something like `drop_na()` for this. Each column name looks way too long, so we probably have to do some renaming to combine all these datasets together
+
+Afterthought: we probably have to keep track of how the data types are like. Let's make a summary here (small gripe: I hate how str() looks but I guess it's because the dataset is big)
+
+Datatype of columns summary (q2_2019):
+
+* Rental ID: double
+* Start Time: datetime
+* End Time: datetime
+* Bike ID: double
+* Duration: number
+* Start Station ID: double
+* Start Station Name: string 
+* End Station ID: double
+* End Station Name: string
+* User Type: string
+* Member Gender: string
+* Member Birthday Year: double
+
+And I think I know why the gender and birthday year are only partially filled its probably because the casual riders don't need to fill that information in.
+
+I think the only thing we need to verify is the start time and end time, which looks right to me (min = 2019-04-01, max = 2019-07-06)
+
+Let us take a look at the rest of the datasets
+
+```{r colnames q3_2019}
+colnames(q3_2019)
+```
+Now the column names seem more clean and easy to manage. Let us take a look at the rest of the details of this data set
+
+```{r head q3_2019}
+head(q3_2019)
+```
+```{r skim_without_charts q3_2019}
+skim_without_charts(q3_2019)
+```
+
+Again, the usual suspects gender and birth_year are not complete again. At least this time the column names are much shorter. Maybe we will rename them to this
+
+Now we will find the datatypes of the columns
+
+```{r datatypes of cols q3_2019 str()}
+str(q3_2019)
+```
+
+Datatype of cols summary (q3_2019):
+
+* trip_id = double
+* start_time = datetime
+* end_time = datetime
+* bikeid = double
+* tripduration = number
+* from_station_id = double
+* from_station_name = character
+* to_station_id = double
+* to_station_name = character
+* usertype = character
+* gender = character
+* birthyear = double
+
+On to the next one
+
+```{r colnames q4_2019}
+colnames(q4_2019)
+```
+
+Ok it looks like they standardized their column names now, which is a good thing. +1
+
+```{r head q4_2019}
+head(q4_2019)
+```
+
+```{r skim_without_charts q4_2019}
+skim_without_charts(q4_2019)
+```
+
+```{r datatypes of cols q4_2019 str()}
+str(q4_2019)
+```
+
+Datatypes of cols summary (q4_2019)
+
+* trip_id = double
+* start_time = datetime
+* end_time = datetime
+* bikeid = double
+* tripduration = number
+* from_station_id = double
+* from_station_name = character
+* to_station_id = double
+* to_station_name = character
+* usertype = character
+* gender = character
+* birthyear = double
+
+Almost there
+
+```{r colnames q1_2020}
+colnames(q1_2020)
+```
+The columns names look pretty different, so more data cleaning to do for later (yikes). There is now some start and end longitude and latitude stuff which the other datasets did not have, and there is no user type. New year, new way of formatting the dataset
+
+```{r head q1_2020}
+head(q1_2020)
+```
+
+rideable type is known as "docked_bike". usertype is now member_casual.
+
+```{r skim_without_charts q1_2020}
+skim_without_charts(q1_2020)
+```
+
+```{r datatypes of cols q1_2020 str()}
+str(q1_2020)
+```
+
+Datatypes of cols summary (q1_2020)
+
+* ride_id = character
+* rideable_type = character
+* started_at = datetime
+* ended_at = datetime
+* start_station_name = character
+* start_station_id = double
+* end_station_name = character
+* end_station_id = double
+* start_lat = double
+* start_lng = double
+* end_lat = double
+* end_lng = double
+* member_casual = character
+
+Now, I guess I have prepared the data in terms of looking through all the data. There are definitely some issues that need fixing.
+
+Issues with data integrity:
+
+* Column names are not standardized
+  + (2019 has usertype while 2020 is member_casual)
+  + (2019 q2_2019 has really long column names that don't fit with anything)
+  + (2019_q3 and 2019_q4 have different naming conventions to q1_2020)
+* Data is not aligned properly 
+  + (2019 has gender and birth year, the 2020 one does not)
+  + (2019 does not have start and end lat lng, 2020 has)
+
+There might be some that I missed because I just did a quick scan of the data using the functions above which the model solution doc picks up on. We will get to that later at the process stage
+
+The model solution Google Doc I am referring to -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
+
+Now, let us move on to the process stage
