@@ -1,0 +1,106 @@
+---
+title: "Analyze_Cyclistic_Part1"
+author: "Jiejun"
+date: "2023-12-09"
+output: html_document
+---
+
+## Analyze Part 1
+In this R Markdown, I will do the steps to analyze the data (part 1). Most of this will be based on this Google Doc here -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
+
+Now we take a look at the data we processed earlier using some functions from packages
+
+### Install packages
+
+```{r install packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+```
+
+### Read the data we processed earlier
+
+```{r read data, message=FALSE, warning=FALSE}
+all_trips <- read_csv("data/all_trips_processed.csv")
+```
+
+### View the data
+
+```{r colnames all_trips}
+colnames(all_trips)
+```
+There are 8 column names as shown above
+
+```{r head all_trips}
+head(all_trips)
+```
+
+The data seems fine based on the head of the data
+
+```{r skim_without_charts all_trips}
+skim_without_charts(all_trips)
+```
+
+There seems to still be 1 missing row for the end_station id and name. Now we check the data types
+
+```{r}
+str(all_trips)
+```
+
+Looks good to me so far
+
+### Add a day, month, year column for the start_date
+
+In order to examine trends over this 1 year period, we can separate the start dates (started_at) into day, month and year. The doc gives us a link that we can follow to learn more -> [link](https://www.statmethods.net/input/dates.html)
+
+```{r}
+all_trips$start_date <- as.Date(all_trips$started_at)
+```
+
+```{r}
+all_trips$start_month <- format(as.Date(all_trips$start_date), "%m")
+all_trips$start_day <- format(as.Date(all_trips$start_date), "%d")
+all_trips$Start_year <- format(as.Date(all_trips$start_date), "%Y")
+all_trips$Start_day_of_week <- format(as.Date(all_trips$start_date), "%A")
+
+```
+
+We should also add a ride length in seconds so that we can analyze that in our trend analysis in the future
+
+* from this point on, all my data suddenly disappeared, but my csv is still made somehow. Following these steps should still give you the same conclusion. I think R may have taken a bit too much memory and it didn't save correctly. Maybe I should have just closed the other tabs
+
+anyway
+
+### Add a ride duration
+
+Click here -> [link](https://stat.ethz.ch/R-manual/R-devel/library/base/html/difftime.html) for more information
+
+```{r}
+all_trips$ride_length <- difftime(all_trips$ended_at,all_trips$started_at)
+```
+
+Convert the ride lengths to numeric
+
+```{r}
+all_trips$ride_length <- as.numeric(all_trips$trip_dur)
+```
+
+Remove the bad data 
+
+The dataframe includes a few hundred entries when bikes were taken out of docks and checked for quality by Divvy or ride_length was negative
+
+We will create a new version of the dataframe (v2) since data is being removed
+
+Click here -> [link](https://www.datasciencemadesimple.com/delete-or-drop-rows-in-r-with-conditions-2/) for more information
+
+```{r}
+all_trips_v2 <- all_trips[!(all_trips$start_station_name == "HQ QR" | all_trips$ride_length<0),]
+```
+
+Now we write all the data into a csv
+
+```{r}
+write_csv(all_trips_v2, file = 'C:\\Users\\jieju\\Desktop\\GoogleDA_CaseStudy\\data\\all_trips_transformed.csv')
+```
+
+We move to part 2 of the analysis. I'm gonna save and push to github real quick

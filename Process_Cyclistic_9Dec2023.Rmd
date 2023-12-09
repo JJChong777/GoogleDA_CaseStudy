@@ -101,7 +101,7 @@ all_trips <- bind_rows(q2_2019, q3_2019, q4_2019, q1_2020)
 
 ### Clean up combined dataset
 
-Now, we need to remove some unnecessary columns. I think I'll drop rideable_type too because it doesn't contribute to our analysis and the 2019 datasets didn't include this, and bike_id<dbl> != rideable_type<str> ("docked_bike")
+Now, we need to remove some unnecessary columns. I think I'll filter out rideable_type too because it doesn't contribute to our analysis and the 2019 datasets didn't include this, and bike_id<dbl> != rideable_type<str> ("docked_bike")
 
 also remove lat, long, birthyear, and gender fields as this data was dropped beginning in 2020
 
