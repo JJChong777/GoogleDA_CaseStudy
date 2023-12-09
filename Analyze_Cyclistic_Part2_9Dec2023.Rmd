@@ -1,0 +1,205 @@
+---
+title: "Analyze_Cyclistic_Part2"
+author: "Jiejun"
+date: "2023-12-09"
+output: html_document
+---
+
+## Analyze Part 2
+In this R Markdown, I will do the steps to analyze the data (part 2). Most of this will be based on this Google Doc here -> [link](https://docs.google.com/document/d/1ZE95TYd94HN7DQ4_Mfg4SAMYEXoRmNlNG_uvUlzA_Jo/edit?usp=sharing)
+
+You should know the drill now
+
+### Install packages
+
+```{r install packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+library(skimr)
+```
+
+### Read the data we processed earlier
+
+```{r read data, message=FALSE, warning=FALSE}
+all_trips <- read_csv("data/all_trips_transformed.csv")
+```
+
+Please data be ok
+
+```{r}
+str(all_trips)
+```
+
+Wow the data looks fine. If you were reading part 1, I was kinda scared all my data would be lost. Now you know the importance of saving stuff. Also the data is pretty huge now (657.2MB) based on my global environment view in Rstudio, which may have caused the catastrophic loss of like half of my Rmd earlier
+
+Now conduct descriptive analysis on ride_length
+
+```{r}
+summary(all_trips$ride_length)
+```
+There seems to be a trip that went on for 9387024 seconds which is 108.65 days. That doesn't seem right. Also there's a ride that seems to have lasted only 1 second, which doesn't seem right either but I guess we'll leave it in
+
+Compare the members and casual users
+
+### Descriptive analytics (casual vs members)
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual, FUN = mean)
+```
+
+Casual riders seem to be hogging the bicycle for a longer time
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual, FUN = median)
+```
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual, FUN = max)
+```
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual, FUN = min)
+```
+
+See the average ride time by each day for members vs casual users
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual + all_trips$Start_day_of_week, FUN = mean)
+```
+
+I made a mistake here of renaming the columns to a capital letter somehow, let me fix that
+
+```{r}
+all_trips <- rename(all_trips,
+             start_day_of_week = Start_day_of_week,
+             start_year = Start_year)
+```
+
+Let me check the column names
+
+```{r}
+colnames(all_trips)
+```
+
+And the days are out of order, so let's fix that
+
+```{r}
+all_trips$day_of_week <- ordered(all_trips$start_day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+```
+
+Now, let's run the average ride time by each day for members vs casual users
+
+```{r}
+aggregate(all_trips$ride_length ~ all_trips$member_casual + all_trips$day_of_week, FUN = mean)
+```
+
+analyze ridership data by type and weekday
+
+```{r}
+all_trips %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  #creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n()							#calculates the number of rides and average duration 
+  ,average_duration = mean(ride_length)) %>% 		# calculates the average duration
+  arrange(member_casual, weekday)								# sorts
+```
+
+Let's visualize the number of rides by rider type
+
+```{r}
+all_trips %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = number_of_rides, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+```
+
+Let me just take a look at the dataset again
+
+```{r}
+skim_without_charts(all_trips)
+```
+```{r}
+nrow(all_trips[all_trips$member_casual == "member",])
+```
+```{r}
+nrow(all_trips[all_trips$member_casual == "casual",])
+```
+
+and there seems to be more data on members as compared to casual so our graph is fine
+
+Let's create a visualization for average duration
+
+```{r}
+all_trips %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>% 
+  group_by(member_casual, weekday) %>% 
+  summarise(number_of_rides = n()
+            ,average_duration = mean(ride_length)) %>% 
+  arrange(member_casual, weekday)  %>% 
+  ggplot(aes(x = weekday, y = average_duration, fill = member_casual)) +
+  geom_col(position = "dodge")
+
+```
+
+Casual riders seem to use the bike for way longer spanning > 3000 seconds (50 minutes)
+
+Now we export the data for more data visualizations
+
+```{r}
+counts <- aggregate(all_trips$ride_length ~ all_trips$member_casual + all_trips$day_of_week, FUN = mean)
+```
+
+```{r}
+write.csv(counts, file = 'C:\\Users\\jieju\\Desktop\\GoogleDA_CaseStudy\\data\\avg_ride_length.csv')
+```
+
+To make full use of the data, I want to examine the geographic locations as well
+
+```{r}
+station_counts <- all_trips %>%
+  group_by(start_station_name, member_casual,end_station_name) %>%
+  summarise(trip_count = n())
+```
+
+
+```{r}
+station_counts <- station_counts %>%
+  arrange(desc(trip_count))
+```
+
+```{r}
+View(station_counts)
+```
+
+
+```{r}
+top_5_stations_member <- station_counts %>%
+  filter(member_casual == "member") %>%
+  head(5)
+```
+
+```{r}
+top_5_stations_casual <- station_counts %>%
+  filter(member_casual == "casual") %>%
+  head(5)
+```
+
+```{r}
+View(top_5_stations_casual)
+```
+
+```{r}
+View(top_5_stations_member)
+```
+
+```{r}
+top_5_end_stations_member <- station_counts %>%
+  filter(member_casual == "member") %>%
+  head(5)
+```
+
